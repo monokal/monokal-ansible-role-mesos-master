@@ -1,0 +1,148 @@
+---
+
+# Packages
+
+- name: install_packages
+  apt:
+    update_cache: yes
+    name: "{{ item }}"
+  with_items:
+    - "mesosphere"
+  register: install_packages
+
+# Configure Zookeeper
+
+- name: amend_zk_myid
+  when: install_packages|success
+  copy:
+    content: "{{ mesos_master_id }}"
+    dest:    /etc/zookeeper/conf/myid
+    owner:   root
+    group:   root
+    mode:    "u=rw,g=r,o=r"
+  register: amend_zk_myid
+  notify:
+    - restart_zookeeper
+
+- name: amend_zk_zoo_cfg
+  when: install_packages|success
+  template:
+    src:   zoo.cfg.j2
+    dest:  /etc/zookeeper/conf/zoo.cfg
+    owner: root
+    group: root
+    mode:  "u=rw,g=r,o=r"
+  register: amend_zk_zoo_cfg
+
+# Configure Mesos
+
+- name: amend_mesos_zk
+  when: install_packages|success
+  template:
+    src:   mesos_zk.j2
+    dest:  /etc/mesos/zk
+    owner: root
+    group: root
+    mode:  "u=rw,g=r,o=r"
+  register: amend_mesos_zk
+
+- name: amend_mesos_master_quorum
+  when: install_packages|success
+  template:
+    src:   quorum.j2
+    dest:  /etc/mesos-master/quorum
+    owner: root
+    group: root
+    mode:  "u=rw,g=r,o=r"
+  register: amend_mesos_master_quorum
+
+- name: amend_mesos_master_ip
+  when: install_packages|success
+  template:
+    src:   ip.j2
+    dest:  /etc/mesos-master/ip
+    owner: root
+    group: root
+    mode:  "u=rw,g=r,o=r"
+  register: amend_mesos_master_ip
+
+- name: amend_mesos_master_hostname
+  when: install_packages|success
+  template:
+    src:   hostname.j2
+    dest:  /etc/mesos-master/hostname
+    owner: root
+    group: root
+    mode:  "u=rw,g=r,o=r"
+  register: amend_mesos_master_hostname
+
+- name: amend_default_mesos_master
+  when: install_packages|success
+  template:
+    src:   mesos-master.j2
+    dest:  /etc/default/mesos-master
+    owner: root
+    group: root
+    mode:  "u=rw,g=r,o=r"
+  register: amend_default_mesos_master
+
+# Configure Marathon
+
+- name: create_marathon_conf_dir
+  when: install_packages|success
+  file:
+    path: /etc/marathon/conf
+    state: directory
+  register: create_marathon_conf_dir
+
+- name: amend_marathon_hostname
+  when: create_marathon_conf_dir|success
+  template:
+    src:   hostname.j2
+    dest:  /etc/marathon/conf/hostname
+    owner: root
+    group: root
+    mode:  "u=rw,g=r,o=r"
+  register: amend_marathon_hostname
+
+- name: amend_marathon_master
+  when: create_marathon_conf_dir|success
+  template:
+    src:   marathon_master.j2
+    dest:  /etc/marathon/conf/master
+    owner: root
+    group: root
+    mode:  "u=rw,g=r,o=r"
+  register: amend_marathon_master
+
+- name: amend_marathon_zk
+  when: create_marathon_conf_dir|success
+  template:
+    src:   marathon_zk.j2
+    dest:  /etc/marathon/conf/zk
+    owner: root
+    group: root
+    mode:  "u=rw,g=r,o=r"
+  register: amend_marathon_zk
+
+- name: amend_default_marathon
+  when: install_packages|success
+  template:
+    src:   default_marathon.j2
+    dest:  /etc/default/marathon
+    owner: root
+    group: root
+    mode:  "u=rw,g=r,o=r"
+  register: amend_default_marathon
+
+# Configure init scripts
+
+- name: amend_init_mesos_slave_override
+  when: install_packages|success
+  template:
+    src:   mesos-slave.override.j2
+    dest:  /etc/init/mesos-slave.override
+    owner: root
+    group: root
+    mode:  "u=rw,g=r,o=r"
+  register: amend_init_mesos_slave_override
