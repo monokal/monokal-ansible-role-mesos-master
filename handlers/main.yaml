@@ -1,0 +1,36 @@
+---
+
+# Mesos Slave
+
+- name: stop_mesos_slave
+  service:
+    name:  mesos-slave
+    state: stopped
+
+# Zookeeper
+
+- name: restart_zookeeper
+  service:
+    name:  zookeeper
+    state: restarted
+
+# Mesos Master
+
+- name: restart_mesos_master
+  service:
+    name:  mesos-master
+    state: restarted
+
+# Chronos
+
+- name: restart_chronos
+  service:
+    name:  chronos
+    state: restarted
+
+# Marathon
+
+- name: restart_marathon
+  service:
+    name:  marathon
+    state: restarted

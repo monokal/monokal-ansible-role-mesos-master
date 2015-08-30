@@ -1,11 +1,25 @@
 ---
 
+# UFW
+
+- name: ufw_allow
+  ufw:
+    rule:      allow
+    port:      "{{ item.port }}"
+    proto:     "{{ item.proto }}"
+    direction: "{{ item.direction }}"
+  with_items:
+    # Inbound
+    - { port: '80',   proto: 'tcp', direction: 'in'}    # Mesos UI
+    - { port: '8080', proto: 'tcp', direction: 'in'}    # Marathon UI
+    - { port: '4400', proto: 'tcp', direction: 'in'}    # Chronos UI
+
 # Packages
 
 - name: install_packages
   apt:
+    name: "{{ item }}"
     update_cache: yes
-    name:         "{{ item }}"
   with_items:
     - "mesosphere"
   register: install_packages
@@ -20,7 +34,6 @@
     owner:   root
     group:   root
     mode:    "u=rw,g=r,o=r"
-  register: amend_zk_myid
   notify:
     - restart_zookeeper
 
@@ -32,7 +45,6 @@
     owner: root
     group: root
     mode:  "u=rw,g=r,o=r"
-  register: amend_zk_zoo_cfg
   notify:
     - restart_zookeeper
 
@@ -46,7 +58,6 @@
     owner: root
     group: root
     mode:  "u=rw,g=r,o=r"
-  register: amend_mesos_zk
   notify:
     - restart_mesos_master
 
@@ -54,35 +65,32 @@
   when: install_packages|success
   copy:
     content: "{{ mesos_quorum }}"
-    dest:  /etc/mesos-master/quorum
-    owner: root
-    group: root
-    mode:  "u=rw,g=r,o=r"
-  register: amend_mesos_master_quorum
+    dest:    /etc/mesos-master/quorum
+    owner:   root
+    group:   root
+    mode:    "u=rw,g=r,o=r"
   notify:
     - restart_mesos_master
 
 - name: amend_mesos_master_ip
   when: install_packages|success
-  template:
-    src:   ip.j2
-    dest:  /etc/mesos-master/ip
-    owner: root
-    group: root
-    mode:  "u=rw,g=r,o=r"
-  register: amend_mesos_master_ip
+  copy:
+    content: "{{ ansible_default_ipv4.address }}"
+    dest:    /etc/mesos-master/ip
+    owner:   root
+    group:   root
+    mode:    "u=rw,g=r,o=r"
   notify:
     - restart_mesos_master
 
 - name: amend_mesos_master_hostname
   when: install_packages|success
-  template:
-    src:   hostname.j2
-    dest:  /etc/mesos-master/hostname
-    owner: root
-    group: root
-    mode:  "u=rw,g=r,o=r"
-  register: amend_mesos_master_hostname
+  copy:
+    content: "{{ ansible_default_ipv4.address }}"
+    dest:    /etc/mesos-master/hostname
+    owner:   root
+    group:   root
+    mode:    "u=rw,g=r,o=r"
   notify:
     - restart_mesos_master
 
@@ -94,7 +102,6 @@
     owner: root
     group: root
     mode:  "u=rw,g=r,o=r"
-  register: amend_default_mesos_master
   notify:
     - restart_mesos_master
 
@@ -103,39 +110,45 @@
 - name: create_marathon_conf_dir
   when: install_packages|success
   file:
-    path: /etc/marathon/conf
+    path:  /etc/marathon/conf
     state: directory
+    owner: root
+    group: root
+    mode:  "u=rwx,g=r,o=r"
   register: create_marathon_conf_dir
 
 - name: amend_marathon_hostname
-  when: create_marathon_conf_dir|success
-  template:
-    src:   hostname.j2
+  when: install_packages|success and create_marathon_conf_dir|success
+  copy:
+    content: "{{ ansible_default_ipv4.address }}"
     dest:  /etc/marathon/conf/hostname
     owner: root
     group: root
     mode:  "u=rw,g=r,o=r"
-  register: amend_marathon_hostname
+  notify:
+    - restart_marathon
 
 - name: amend_marathon_master
-  when: create_marathon_conf_dir|success
+  when: install_packages|success and create_marathon_conf_dir|success
   template:
     src:   marathon_master.j2
     dest:  /etc/marathon/conf/master
     owner: root
     group: root
     mode:  "u=rw,g=r,o=r"
-  register: amend_marathon_master
+  notify:
+    - restart_marathon
 
 - name: amend_marathon_zk
-  when: create_marathon_conf_dir|success
+  when: install_packages|success and create_marathon_conf_dir|success
   template:
     src:   marathon_zk.j2
     dest:  /etc/marathon/conf/zk
     owner: root
     group: root
     mode:  "u=rw,g=r,o=r"
-  register: amend_marathon_zk
+  notify:
+    - restart_marathon
 
 - name: amend_default_marathon
   when: install_packages|success
@@ -145,16 +158,22 @@
     owner: root
     group: root
     mode:  "u=rw,g=r,o=r"
-  register: amend_default_marathon
+  notify:
+    - restart_marathon
 
 # Configure init scripts
 
 - name: amend_init_mesos_slave_override
   when: install_packages|success
-  template:
-    src:   mesos-slave.override.j2
-    dest:  /etc/init/mesos-slave.override
-    owner: root
-    group: root
-    mode:  "u=rw,g=r,o=r"
-  register: amend_init_mesos_slave_override
+  copy:
+    content: "manual"
+    dest:    /etc/init/mesos-slave.override
+    owner:   root
+    group:   root
+    mode:    "u=rw,g=r,o=r"
+  notify:
+    - stop_mesos_slave
+    - restart_zookeeper
+    - restart_mesos_master
+    - restart_chronos
+    - restart_marathon
