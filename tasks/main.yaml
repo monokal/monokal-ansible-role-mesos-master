@@ -10,14 +10,14 @@
     direction: "{{ item.direction }}"
   with_items:
     # Inbound
-    - { port: '80',    proto: 'tcp', direction: 'in'}    # Mesos UI
-    - { port: '8080',  proto: 'tcp', direction: 'in'}    # Marathon UI
-    - { port: '4400',  proto: 'tcp', direction: 'in'}    # Chronos UI
+    - { port: '5050',  proto: 'tcp', direction: 'in'}    # Mesos HTTP UI
+    - { port: '8080',  proto: 'tcp', direction: 'in'}    # Marathon HTTP UI
+    - { port: '4400',  proto: 'tcp', direction: 'in'}    # Chronos HTTP UI
     - { port: '52222', proto: 'tcp', direction: 'in'}
     - { port: '52931', proto: 'tcp', direction: 'in'}
-    - { port: '2181',  proto: 'tcp', direction: 'in'}
-    - { port: '2888',  proto: 'tcp', direction: 'in'}
-    - { port: '3888',  proto: 'tcp', direction: 'in'}
+    - { port: '2181',  proto: 'tcp', direction: 'in'}    # Zookeeper client port
+    - { port: '2888',  proto: 'tcp', direction: 'in'}    # Zookeeper client to leader port
+    - { port: '3888',  proto: 'tcp', direction: 'in'}    # Zookeeper leader election port
     # Outbound
     - { port: '52222', proto: 'tcp', direction: 'out'}
     - { port: '52931', proto: 'tcp', direction: 'out'}
