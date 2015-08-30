@@ -26,7 +26,7 @@ clientPort={{ zk_client_port }}
 # The second one is used for leader election
 #server.1=zookeeper1:2888:3888
 {% for host in groups['monokal_mesos_masters'] %}
-server.{{ hostvars[host]['mesos_master_id'] }}={{ hostvars[host]['ansible_default_ipv4']['address'] }}:{{ zk_leader_client_port }}:{{ zk_leader_election_port }}
+server.{{ hostvars[host]['mesos_master_id'] }}={{ hostvars[host]['ansible_fqdn'] }}:{{ zk_leader_client_port }}:{{ zk_leader_election_port }}
 {% endfor %}
 
 # To avoid seeks ZooKeeper allocates space in the transaction log file in
